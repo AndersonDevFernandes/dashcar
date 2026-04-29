@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Mercado Automotivo Brasil</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0A0C14;
+    --surface: #111827;
+    --surface2: #1A2235;
+    --border: #1E2D45;
+    --accent: #E8B84B;
+    --accent2: #3B82F6;
+    --accent3: #10B981;
+    --accent4: #EF4444;
+    --text: #F1F5F9;
+    --text-muted: #8B9DB5;
+    --text-dim: #4B5E75;
+    --red: #EF4444;
+    --green: #10B981;
+    --blue: #3B82F6;
+    --yellow: #E8B84B;
+    --purple: #8B5CF6;
+    --pink: #EC4899;
+    --teal: #14B8A6;
+    --orange: #F97316;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid noise texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      radial-gradient(circle at 20% 50%, rgba(59,130,246,0.04) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(232,184,75,0.04) 0%, transparent 50%),
+      radial-gradient(circle at 50% 80%, rgba(16,185,129,0.03) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .dashboard {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 24px 40px;
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 0 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo-icon {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--accent) 0%, #F59E0B 100%);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 0 20px rgba(232,184,75,0.3);
+  }
+
+  .header-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  .header-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .year-pills {
+    display: flex;
+    gap: 6px;
+  }
+
+  .pill {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Barlow Condensed', sans-serif;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    background: transparent;
+  }
+
+  .pill.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(232,184,75,0.4);
+  }
+
+  /* ===== KPI ROW ===== */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .kpi-card.yellow::before { background: linear-gradient(90deg, var(--yellow), #F59E0B); }
+  .kpi-card.blue::before { background: linear-gradient(90deg, var(--blue), #6366F1); }
+  .kpi-card.green::before { background: linear-gradient(90deg, var(--green), #059669); }
+  .kpi-card.red::before { background: linear-gradient(90deg, var(--red), #DC2626); }
+
+  .kpi-label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .kpi-card.yellow .kpi-value { color: var(--yellow); }
+  .kpi-card.blue .kpi-value { color: var(--blue); }
+  .kpi-card.green .kpi-value { color: var(--green); }
+  .kpi-card.red .kpi-value { color: var(--red); }
+
+  .kpi-delta {
+    font-size: 12px;
+    color: var(--green);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .kpi-delta.down { color: var(--red); }
+  .kpi-icon {
+    position: absolute;
+    right: 18px; bottom: 16px;
+    font-size: 32px;
+    opacity: 0.12;
+  }
+
+  /* ===== MAIN GRID ===== */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    position: relative;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .card-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(59,130,246,0.15);
+    color: var(--blue);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  /* ===== BOTTOM GRID ===== */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+  }
+
+  /* ===== BRAND LOGOS SECTION ===== */
+  .brands-section {
+    margin-bottom: 20px;
+  }
+
+  .brands-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .brand-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .brand-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  }
+
+  .brand-card.selected {
+    border-color: var(--accent);
+    background: rgba(232,184,75,0.08);
+    box-shadow: 0 0 16px rgba(232,184,75,0.15);
+  }
+
+  .brand-logo {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    overflow: hidden;
+    background: white;
+    padding: 4px;
+  }
+
+  .brand-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .brand-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-family: 'Barlow Condensed', sans-serif;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .brand-sales {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: 'Barlow Condensed', sans-serif;
+    margin-top: 2px;
+  }
+
+  .brand-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .brand-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #F59E0B);
+    border-radius: 2px;
+    transition: width 1s ease;
+  }
+
+  /* ===== TABLE ===== */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .data-table th {
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-weight: 600;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table td {
+    padding: 10px 12px;
+    font-size: 13px;
+    color: var(--text);
+    border-bottom: 1px solid rgba(30,45,69,0.5);
+  }
+
+  .data-table tr:last-child td { border-bottom: none; }
+
+  .data-table tr:hover td {
+    background: rgba(255,255,255,0.02);
+  }
+
+  .rank-badge {
+    display: inline-flex;
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'Barlow Condensed', sans-serif;
+  }
+
+  .rank-1 { background: rgba(232,184,75,0.2); color: var(--yellow); }
+  .rank-2 { background: rgba(148,163,184,0.15); color: #94A3B8; }
+  .rank-3 { background: rgba(180,120,60,0.15); color: #B47C3C; }
+  .rank-n { background: rgba(30,45,69,0.5); color: var(--text-dim); }
+
+  /* ===== MINI BAR ===== */
+  .mini-bar-wrap {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .mini-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .mini-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+  }
+
+  /* ===== STATE DOT ===== */
+  .state-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ===== TREND LINE CHART ===== */
+  .chart-container {
+    position: relative;
+    width: 100%;
+  }
+
+  /* ===== SECTION DIVIDER ===== */
+  .section-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Pulse animation for live indicator */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+    display: inline-block;
+    margin-right: 6px;
+  }
+
+  /* Fade in animation */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .kpi-card { animation: fadeUp 0.4s ease forwards; }
+  .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+  .kpi-card:nth-child(2) { animation-delay: 0.1s; }
+  .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+  .kpi-card:nth-child(4) { animation-delay: 0.2s; }
+
+  .card { animation: fadeUp 0.4s ease forwards; animation-delay: 0.25s; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="dashboard">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-icon">🚗</div>
+      <div>
+        <div class="header-title">Mercado Automotivo Brasil</div>
+        <div class="header-subtitle"><span class="live-dot"></span>Dashboard de Vendas · 2020–2025</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="year-pills" id="yearFilter">
+        <span class="pill active" data-year="all">Todos</span>
+        <span class="pill" data-year="2020">2020</span>
+        <span class="pill" data-year="2021">2021</span>
+        <span class="pill" data-year="2022">2022</span>
+        <span class="pill" data-year="2023">2023</span>
+        <span class="pill" data-year="2024">2024</span>
+        <span class="pill" data-year="2025">2025</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="kpi-card yellow">
+      <div class="kpi-label">Total de Vendas</div>
+      <div class="kpi-value" id="kpiVendas">R$ 0</div>
+      <div class="kpi-delta">▲ 8.2% vs período anterior</div>
+      <div class="kpi-icon">💰</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">Unidades Vendidas</div>
+      <div class="kpi-value" id="kpiUnidades">0</div>
+      <div class="kpi-delta">▲ 6.1% vs período anterior</div>
+      <div class="kpi-icon">🚘</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Ticket Médio</div>
+      <div class="kpi-value" id="kpiTicket">R$ 0</div>
+      <div class="kpi-delta">▲ 1.9% vs período anterior</div>
+      <div class="kpi-icon">📊</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Modelos Ativos</div>
+      <div class="kpi-value" id="kpiModelos">0</div>
+      <div class="kpi-delta down">▼ 0 variação</div>
+      <div class="kpi-icon">🏷️</div>
+    </div>
+  </div>
+
+  <!-- BRANDS SECTION -->
+  <div class="brands-section">
+    <div class="section-title">Fabricantes</div>
+    <div class="brands-grid" id="brandsGrid"></div>
+  </div>
+
+  <!-- MAIN CHARTS GRID -->
+  <div class="main-grid">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Evolução de Vendas por Ano</div>
+        <span class="card-badge">Série Temporal</span>
+      </div>
+      <div class="chart-container" style="height:260px">
+        <canvas id="chartTrend"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Mix por Tipo</div>
+        <span class="card-badge">Categorias</span>
+      </div>
+      <div class="chart-container" style="height:260px">
+        <canvas id="chartTipo"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM GRID -->
+  <div class="bottom-grid">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Top Modelos</div>
+        <span class="card-badge">Ranking</span>
+      </div>
+      <table class="data-table" id="tableModelos"></table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Vendas por Estado</div>
+        <span class="card-badge">Regiões</span>
+      </div>
+      <div class="chart-container" style="height:280px">
+        <canvas id="chartEstados"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Market Share</div>
+        <span class="card-badge">Fabricantes</span>
+      </div>
+      <div class="chart-container" style="height:280px">
+        <canvas id="chartShare"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ===== DATA =====
+const BRANDS = [
+  { name: 'Toyota',     color: '#EB0A1E', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Toyota_carlogo.svg/1200px-Toyota_carlogo.svg.png' },
+  { name: 'Volkswagen', color: '#001E50', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Volkswagen_logo_2019.svg/1200px-Volkswagen_logo_2019.svg.png' },
+  { name: 'Chevrolet',  color: '#FFC20E', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Chevrolet_2013_logo.svg/1200px-Chevrolet_2013_logo.svg.png' },
+  { name: 'Fiat',       color: '#8B0000', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Fiat_Logo.svg/1200px-Fiat_Logo.svg.png' },
+  { name: 'Ford',       color: '#003478', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Ford_logo_flat.svg/1200px-Ford_logo_flat.svg.png' },
+  { name: 'Honda',      color: '#CC0000', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Honda.svg/1200px-Honda.svg.png' },
+  { name: 'Hyundai',    color: '#002C5F', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Hyundai_Motor_Company_logo.svg/1200px-Hyundai_Motor_Company_logo.svg.png' },
+  { name: 'Renault',    color: '#FFCC33', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Renault_2021_Text.svg/1200px-Renault_2021_Text.svg.png' },
+];
+
+const MODELS = {
+  'Toyota':     ['Corolla','Hilux','Yaris','RAV4','SW4'],
+  'Volkswagen': ['Gol','Polo','Virtus','T-Cross','Amarok'],
+  'Chevrolet':  ['Onix','Tracker','S10','Spin','Montana'],
+  'Fiat':       ['Argo','Cronos','Toro','Mobi','Pulse'],
+  'Ford':       ['Ka','Ranger','Territory','Bronco','Maverick'],
+  'Honda':      ['Civic','HR-V','CR-V','Fit','City'],
+  'Hyundai':    ['HB20','Creta','Tucson','Santa Fe','Azera'],
+  'Renault':    ['Kwid','Sandero','Duster','Logan','Captur'],
+};
+
+const ESTADOS = ['SP','RJ','MG','RS','PR','SC','BA','GO','PE','CE','MT','MS','PA','AM','ES'];
+const TIPOS = ['Sedan','Hatchback','SUV','Picape','Minivan'];
+const ANOS = [2020,2021,2022,2023,2024,2025];
+const BRAND_COLORS = ['#EB0A1E','#001E50','#FFC20E','#8B0000','#003478','#CC0000','#002C5F','#FFCC33'];
+const CHART_COLORS = ['#3B82F6','#E8B84B','#10B981','#EF4444','#8B5CF6','#EC4899','#14B8A6','#F97316'];
+
+// Generate deterministic data
+function seededRand(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 1664525 + 1013904223) & 0xFFFFFFFF;
+    return (s >>> 0) / 0xFFFFFFFF;
+  };
+}
+
+function generateData() {
+  const rand = seededRand(42);
+  const rows = [];
+  const priceRanges = { Sedan:[80000,180000], Hatchback:[50000,110000], SUV:[120000,280000], Picape:[150000,350000], Minivan:[90000,200000] };
+  
+  ANOS.forEach(ano => {
+    const brandKeys = Object.keys(MODELS);
+    brandKeys.forEach((fab, fi) => {
+      MODELS[fab].forEach((modelo, mi) => {
+        ESTADOS.forEach(estado => {
+          const tipoIdx = (fi + mi) % TIPOS.length;
+          const tipo = TIPOS[tipoIdx];
+          const [pmin, pmax] = priceRanges[tipo];
+          const preco = Math.floor(rand() * (pmax - pmin) + pmin);
+          const yearFactor = 1 + (ano - 2020) * 0.08;
+          const qtdVend = Math.floor((rand() * 2950 + 50) * yearFactor);
+          const valorTotal = qtdVend * preco;
+          rows.push({ ano, estado, fabricante: fab, modelo, tipo, preco, qtdVend, valorTotal });
+        });
+      });
+    });
+  });
+  return rows;
+}
+
+const ALL_DATA = generateData();
+let selectedYear = 'all';
+let selectedBrand = null;
+
+function filterData() {
+  let d = ALL_DATA;
+  if (selectedYear !== 'all') d = d.filter(r => r.ano === +selectedYear);
+  if (selectedBrand) d = d.filter(r => r.fabricante === selectedBrand);
+  return d;
+}
+
+function formatBRL(n) {
+  if (n >= 1e9) return 'R$ ' + (n/1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return 'R$ ' + (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return 'R$ ' + (n/1e3).toFixed(0) + 'K';
+  return 'R$ ' + n.toFixed(0);
+}
+
+function formatNum(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+  if (n >= 1e3) return (n/1e3).toFixed(0)+'K';
+  return n;
+}
+
+// ===== RENDER KPIs =====
+function renderKPIs(data) {
+  const totalVendas = data.reduce((s,r) => s+r.valorTotal, 0);
+  const totalUnidades = data.reduce((s,r) => s+r.qtdVend, 0);
+  const ticket = totalUnidades > 0 ? totalVendas/totalUnidades : 0;
+  const modelos = new Set(data.map(r=>r.modelo)).size;
+
+  document.getElementById('kpiVendas').textContent = formatBRL(totalVendas);
+  document.getElementById('kpiUnidades').textContent = formatNum(totalUnidades);
+  document.getElementById('kpiTicket').textContent = formatBRL(ticket);
+  document.getElementById('kpiModelos').textContent = modelos;
+}
+
+// ===== RENDER BRANDS =====
+function renderBrands(data) {
+  const byBrand = {};
+  BRANDS.forEach(b => byBrand[b.name] = 0);
+  data.forEach(r => { if (byBrand[r.fabricante] !== undefined) byBrand[r.fabricante] += r.valorTotal; });
+  const maxVal = Math.max(...Object.values(byBrand));
+
+  const grid = document.getElementById('brandsGrid');
+  grid.innerHTML = '';
+  BRANDS.forEach(brand => {
+    const val = byBrand[brand.name] || 0;
+    const pct = maxVal > 0 ? (val/maxVal*100).toFixed(0) : 0;
+    const card = document.createElement('div');
+    card.className = 'brand-card' + (selectedBrand === brand.name ? ' selected' : '');
+    card.innerHTML = `
+      <div class="brand-logo">
+        <img src="${brand.logo}" alt="${brand.name}" onerror="this.parentElement.innerHTML='<span style=font-size:22px;font-weight:900;color:${brand.color};font-family:Barlow Condensed,sans-serif>${brand.name[0]}</span>'">
+      </div>
+      <div class="brand-name">${brand.name}</div>
+      <div class="brand-sales">${formatBRL(val)}</div>
+      <div class="brand-bar"><div class="brand-bar-fill" style="width:${pct}%"></div></div>
+    `;
+    card.addEventListener('click', () => {
+      selectedBrand = selectedBrand === brand.name ? null : brand.name;
+      renderAll();
+    });
+    grid.appendChild(card);
+  });
+}
+
+// ===== CHARTS =====
+let charts = {};
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1A2235', titleColor: '#F1F5F9', bodyColor: '#8B9DB5', borderColor: '#1E2D45', borderWidth: 1, padding: 10, cornerRadius: 8 } },
+};
+
+function renderTrendChart(data) {
+  destroyChart('trend');
+  const byYear = {};
+  ANOS.forEach(a => byYear[a] = 0);
+  data.forEach(r => byYear[r.ano] += r.valorTotal);
+
+  const ctx = document.getElementById('chartTrend').getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+  gradient.addColorStop(0, 'rgba(232,184,75,0.25)');
+  gradient.addColorStop(1, 'rgba(232,184,75,0)');
+
+  charts.trend = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ANOS,
+      datasets: [{
+        data: ANOS.map(a => byYear[a]/1e9),
+        borderColor: '#E8B84B',
+        backgroundColor: gradient,
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#E8B84B',
+        pointBorderColor: '#0A0C14',
+        pointRadius: 5,
+        pointHoverRadius: 7,
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      scales: {
+        x: { grid: { color: 'rgba(30,45,69,0.5)' }, ticks: { color: '#8B9DB5', font: { family: 'Barlow Condensed', size: 13 } } },
+        y: { grid: { color: 'rgba(30,45,69,0.5)' }, ticks: { color: '#8B9DB5', font: { family: 'Barlow Condensed', size: 12 }, callback: v => 'R$'+v.toFixed(1)+'B' } }
+      }
+    }
+  });
+}
+
+function renderTipoChart(data) {
+  destroyChart('tipo');
+  const byTipo = {};
+  TIPOS.forEach(t => byTipo[t] = 0);
+  data.forEach(r => byTipo[r.tipo] += r.valorTotal);
+
+  const ctx = document.getElementById('chartTipo').getContext('2d');
+  charts.tipo = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: TIPOS,
+      datasets: [{
+        data: TIPOS.map(t => byTipo[t]/1e9),
+        backgroundColor: CHART_COLORS,
+        borderColor: '#111827',
+        borderWidth: 3,
+        hoverOffset: 6,
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      cutout: '68%',
+      plugins: {
+        ...chartDefaults.plugins,
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: { color: '#8B9DB5', font: { family: 'Barlow', size: 11 }, padding: 14, boxWidth: 12, boxHeight: 12, usePointStyle: true }
+        }
+      }
+    }
+  });
+}
+
+function renderModelosTable(data) {
+  const byModelo = {};
+  data.forEach(r => {
+    if (!byModelo[r.modelo]) byModelo[r.modelo] = { val: 0, fab: r.fabricante };
+    byModelo[r.modelo].val += r.valorTotal;
+  });
+  const sorted = Object.entries(byModelo).sort((a,b) => b[1].val - a[1].val).slice(0, 8);
+  const maxVal = sorted[0]?.[1].val || 1;
+
+  const table = document.getElementById('tableModelos');
+  table.innerHTML = `<thead><tr><th>#</th><th>Modelo</th><th>Fabricante</th><th>Vendas</th></tr></thead>`;
+  const tbody = document.createElement('tbody');
+  sorted.forEach(([modelo, {val, fab}], i) => {
+    const rankClass = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-n';
+    const pct = (val/maxVal*100).toFixed(0);
+    const brandColor = BRANDS.find(b=>b.name===fab)?.color || '#3B82F6';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="rank-badge ${rankClass}">${i+1}</span></td>
+      <td style="font-weight:600">${modelo}</td>
+      <td style="color:var(--text-muted);font-size:12px">${fab}</td>
+      <td>
+        <div class="mini-bar-wrap">
+          <span style="font-size:12px;font-family:'Barlow Condensed';font-weight:600;color:var(--accent);min-width:54px">${formatBRL(val)}</span>
+          <div class="mini-bar"><div class="mini-bar-fill" style="width:${pct}%;background:${brandColor}"></div></div>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+}
+
+function renderEstadosChart(data) {
+  destroyChart('estados');
+  const byEstado = {};
+  ESTADOS.forEach(e => byEstado[e] = 0);
+  data.forEach(r => byEstado[r.estado] += r.valorTotal);
+  const sorted = Object.entries(byEstado).sort((a,b) => b[1]-a[1]).slice(0,10);
+
+  const ctx = document.getElementById('chartEstados').getContext('2d');
+  charts.estados = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sorted.map(s=>s[0]),
+      datasets: [{
+        data: sorted.map(s=>s[1]/1e9),
+        backgroundColor: sorted.map((_,i) => i===0?'#E8B84B':i<3?'rgba(232,184,75,0.5)':'rgba(59,130,246,0.4)'),
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      indexAxis: 'y',
+      scales: {
+        x: { grid: { color: 'rgba(30,45,69,0.5)' }, ticks: { color: '#8B9DB5', font: { family:'Barlow Condensed',size:11 }, callback: v => 'R$'+v.toFixed(1)+'B' } },
+        y: { grid: { display: false }, ticks: { color: '#F1F5F9', font: { family:'Barlow Condensed',size:13,weight:'600' } } }
+      }
+    }
+  });
+}
+
+function renderShareChart(data) {
+  destroyChart('share');
+  const byBrand = {};
+  BRANDS.forEach(b => byBrand[b.name] = 0);
+  data.forEach(r => { if (byBrand[r.fabricante] !== undefined) byBrand[r.fabricante] += r.valorTotal; });
+
+  const ctx = document.getElementById('chartShare').getContext('2d');
+  charts.share = new Chart(ctx, {
+    type: 'polarArea',
+    data: {
+      labels: BRANDS.map(b=>b.name),
+      datasets: [{
+        data: BRANDS.map(b => byBrand[b.name]/1e9),
+        backgroundColor: BRANDS.map((b,i) => CHART_COLORS[i]+'99'),
+        borderColor: BRANDS.map((b,i) => CHART_COLORS[i]),
+        borderWidth: 1.5,
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      scales: { r: { grid: { color: 'rgba(30,45,69,0.7)' }, ticks: { display: false }, pointLabels: { color: '#8B9DB5', font: { family:'Barlow Condensed', size:11 } } } },
+      plugins: {
+        ...chartDefaults.plugins,
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: { color: '#8B9DB5', font: { family:'Barlow', size:10 }, padding: 8, boxWidth: 10, boxHeight: 10, usePointStyle: true }
+        }
+      }
+    }
+  });
+}
+
+function renderAll() {
+  const data = filterData();
+  renderKPIs(data);
+  renderBrands(data);
+  renderTrendChart(data);
+  renderTipoChart(data);
+  renderModelosTable(data);
+  renderEstadosChart(data);
+  renderShareChart(data);
+}
+
+// Year filter clicks
+document.getElementById('yearFilter').addEventListener('click', e => {
+  if (!e.target.matches('.pill')) return;
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  e.target.classList.add('active');
+  selectedYear = e.target.dataset.year;
+  renderAll();
+});
+
+// Initial render
+renderAll();
+</script>
+</body>
+</html>
